@@ -98,6 +98,33 @@ function App() {
     }
   };
 
+  const handleSubscribe = async () => {
+    try {
+      setIsLoading(true);
+      const returnUrl = window.location.href;
+
+      const response = await client.queries.createSubscription({
+        userId: user?.userId || "test-user",
+        returnUrl,
+        priceId: undefined, // Uses default price from Lambda
+      });
+
+      if (response.data?.error) {
+        setError(response.data.error);
+      } else if (response.data?.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.checkoutUrl;
+      }
+    } catch (err) {
+      console.error("Error creating subscription:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to create subscription"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main
       style={{
@@ -189,191 +216,272 @@ function App() {
             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
           }}
         >
-          {/* Status Badge */}
-          <div style={{ marginBottom: "32px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: "500",
-                color: "#6b7280",
-                marginBottom: "8px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Status
-            </label>
-            <span
-              style={{
-                display: "inline-block",
-                padding: "6px 12px",
-                backgroundColor: getStatusColor(subscriptionData.status || ""),
-                color: "white",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "500",
-                textTransform: "capitalize",
-              }}
-            >
-              {formatStatus(subscriptionData.status || "unknown")}
-            </span>
-          </div>
+          {subscriptionData.status === "no_subscription" ? (
+            /* NO SUBSCRIPTION - Show subscribe option */
+            <div style={{ textAlign: "center" }}>
+              <div style={{ marginBottom: "24px" }}>
+                <h2
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: "600",
+                    color: "#111827",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  No Active Subscription
+                </h2>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#6b7280",
+                    margin: 0,
+                  }}
+                >
+                  Subscribe to unlock premium features
+                </p>
+              </div>
 
-          {/* Plan Name */}
-          <div style={{ marginBottom: "32px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: "500",
-                color: "#6b7280",
-                marginBottom: "8px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Plan
-            </label>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "16px",
-                color: "#111827",
-              }}
-            >
-              {subscriptionData.planName || "N/A"}
-            </p>
-          </div>
-
-          {/* Renewal Date */}
-          {subscriptionData.renewalDate && (
-            <div style={{ marginBottom: "32px" }}>
-              <label
+              <button
+                onClick={handleSubscribe}
+                disabled={isLoading}
                 style={{
-                  display: "block",
-                  fontSize: "12px",
-                  fontWeight: "500",
+                  width: "100%",
+                  padding: "14px",
+                  backgroundColor: isLoading ? "#e5e7eb" : "#635BFF",
+                  color: isLoading ? "#9ca3af" : "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "15px",
+                  fontWeight: "600",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  marginBottom: "12px",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = "#5145e5";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = "#635BFF";
+                  }
+                }}
+              >
+                {isLoading ? "Loading..." : "Subscribe to Pro Plan"}
+              </button>
+
+              <button
+                onClick={handleManageBilling}
+                disabled={isLoading}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "transparent",
                   color: "#6b7280",
-                  marginBottom: "8px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
                 }}
               >
-                Next Renewal
-              </label>
-              <p
+                Or explore billing options
+              </button>
+            </div>
+          ) : (
+            /* HAS SUBSCRIPTION - Show subscription details */
+            <>
+              {/* Status Badge */}
+              <div style={{ marginBottom: "32px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    color: "#6b7280",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Status
+                </label>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "6px 12px",
+                    backgroundColor: getStatusColor(
+                      subscriptionData.status || ""
+                    ),
+                    color: "white",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {formatStatus(subscriptionData.status || "unknown")}
+                </span>
+              </div>
+
+              {/* Plan Name */}
+              <div style={{ marginBottom: "32px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    color: "#6b7280",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Plan
+                </label>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "16px",
+                    color: "#111827",
+                  }}
+                >
+                  {subscriptionData.planName || "N/A"}
+                </p>
+              </div>
+
+              {/* Renewal Date */}
+              {subscriptionData.renewalDate && (
+                <div style={{ marginBottom: "32px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      color: "#6b7280",
+                      marginBottom: "8px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Next Renewal
+                  </label>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "16px",
+                      color: "#111827",
+                    }}
+                  >
+                    {formatDate(subscriptionData.renewalDate)}
+                  </p>
+                </div>
+              )}
+
+              {/* Current Period */}
+              <div
                 style={{
-                  margin: 0,
-                  fontSize: "16px",
-                  color: "#111827",
+                  marginBottom: "32px",
+                  paddingTop: "24px",
+                  borderTop: "1px solid #f3f4f6",
                 }}
               >
-                {formatDate(subscriptionData.renewalDate)}
-              </p>
-            </div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    color: "#6b7280",
+                    marginBottom: "16px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Current Period
+                </label>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "24px",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        margin: "0 0 4px 0",
+                        fontSize: "12px",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      Start
+                    </p>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "14px",
+                        color: "#111827",
+                      }}
+                    >
+                      {formatDate(subscriptionData.currentPeriodStart)}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        margin: "0 0 4px 0",
+                        fontSize: "12px",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      End
+                    </p>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "14px",
+                        color: "#111827",
+                      }}
+                    >
+                      {formatDate(subscriptionData.currentPeriodEnd)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Manage Billing Button */}
+              <button
+                onClick={handleManageBilling}
+                disabled={isLoading}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: isLoading ? "#e5e7eb" : "#111827",
+                  color: isLoading ? "#9ca3af" : "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = "#374151";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = "#111827";
+                  }
+                }}
+              >
+                {isLoading ? "Loading..." : "Manage Billing"}
+              </button>
+            </>
           )}
-
-          {/* Current Period */}
-          <div
-            style={{
-              marginBottom: "32px",
-              paddingTop: "24px",
-              borderTop: "1px solid #f3f4f6",
-            }}
-          >
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: "500",
-                color: "#6b7280",
-                marginBottom: "16px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Current Period
-            </label>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "24px",
-              }}
-            >
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 4px 0",
-                    fontSize: "12px",
-                    color: "#9ca3af",
-                  }}
-                >
-                  Start
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "14px",
-                    color: "#111827",
-                  }}
-                >
-                  {formatDate(subscriptionData.currentPeriodStart)}
-                </p>
-              </div>
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 4px 0",
-                    fontSize: "12px",
-                    color: "#9ca3af",
-                  }}
-                >
-                  End
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "14px",
-                    color: "#111827",
-                  }}
-                >
-                  {formatDate(subscriptionData.currentPeriodEnd)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Manage Billing Button */}
-          <button
-            onClick={handleManageBilling}
-            disabled={isLoading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              backgroundColor: isLoading ? "#e5e7eb" : "#111827",
-              color: isLoading ? "#9ca3af" : "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "500",
-              cursor: isLoading ? "not-allowed" : "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.backgroundColor = "#374151";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.backgroundColor = "#111827";
-              }
-            }}
-          >
-            {isLoading ? "Loading..." : "Manage Billing"}
-          </button>
         </div>
       ) : (
         <div

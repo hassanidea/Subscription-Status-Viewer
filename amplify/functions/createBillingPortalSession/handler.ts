@@ -10,8 +10,8 @@ export type CreateBillingPortalSessionHandler = Handler<
 >;
 
 // Hardcoded test customer for assessment scope
-const TEST_CUSTOMER_ID = "cus_TaB0dKtvFSXyYe";
-
+// const TEST_CUSTOMER_ID = "cus_TaB0dKtvFSXyYe";
+const TEST_CUSTOMER_ID = "cus_TaAXUYZvkhOKJO";
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_API_KEY!, {
   apiVersion: "2025-11-17.clover",

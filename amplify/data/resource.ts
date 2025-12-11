@@ -1,8 +1,38 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { getSubscriptionStatus } from "../functions/getSubscriptionStatus/resource";
 import { createBillingPortalSession } from "../functions/createBillingPortalSession/resource";
+import { createSubscription } from "../functions/createSubscription/resource";
 
 const schema = a.schema({
+  createSubscription: a
+    .query()
+    .arguments({
+      userId: a.string().required(),
+      priceId: a.string(),
+      returnUrl: a.string().required(),
+    })
+    .returns(
+      a.customType({
+        checkoutUrl: a.string(),
+        error: a.string(),
+      })
+    )
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(createSubscription)),
+
+  // Data model: User-Stripe customer mapping
+  UserStripeMapping: a
+    .model({
+      userId: a.string().required(),
+      stripeCustomerId: a.string().required(),
+      email: a.email(),
+      createdAt: a.datetime(),
+    })
+    .authorization((allow) => [
+      allow.owner(),
+      allow.authenticated().to(["read"]),
+    ]),
+
   getSubscriptionStatus: a
     .query()
     .arguments({

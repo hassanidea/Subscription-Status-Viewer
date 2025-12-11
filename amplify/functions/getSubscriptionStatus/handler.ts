@@ -20,8 +20,8 @@ export interface SubscriptionData {
 
 // Hardcoded test customer for assessment scope
 // NOTE: In production, this would query a database table by userId
-const TEST_CUSTOMER_ID = "cus_TaB0dKtvFSXyYe";
-
+// const TEST_CUSTOMER_ID = "cus_TaB0dKtvFSXyYe";
+const TEST_CUSTOMER_ID = "cus_TaAXUYZvkhOKJO";
 // Initialize Stripe with API key from environment
 // NOTE: In production, use AWS Secrets Manager
 const stripe = new Stripe(process.env.STRIPE_API_KEY!, {
