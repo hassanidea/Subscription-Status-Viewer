@@ -95,7 +95,10 @@ A modern web application for viewing and managing Stripe subscription status, bu
 ## Assumptions
 
 1. **Test Environment**: Using Stripe test mode with test API keys
-2. **Single Customer**: One test customer (`cus_TaB0dKtvFSXyYe`) for demonstration
+2. **Single Customer**: One test customer (`cus_TaB0dKtvFSXyYe`) hardcoded for demonstration
+   - **Security Note**: Customer IDs are not sensitive data (unlike API keys)
+   - All authenticated users see the same test subscription data
+   - Production would use database lookup to map `userId` → `stripe_customer_id`
 3. **US Locale**: Date formatting assumes US English locale
 4. **Modern Browsers**: Targets evergreen browsers with ES6+ support
 5. **AWS Account**: User has AWS account with appropriate permissions
@@ -103,29 +106,37 @@ A modern web application for viewing and managing Stripe subscription status, bu
 
 ## Setup Instructions
 
-See [SETUP.md](./SETUP.md) for detailed local setup instructions.
-
 **Quick Start:**
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your Stripe API key
+# 2. Set Stripe API key in Amplify sandbox secrets
+npx ampx sandbox secret set STRIPE_API_KEY
+# When prompted, paste your Stripe test API key (sk_test_...)
 
-# 3. Start Amplify sandbox
+# 3. Start Amplify sandbox (deploys backend with authentication)
 npx ampx sandbox
 
-# 4. In a new terminal, start dev server
+# 4. In a new terminal, start development server
 npm run dev
+
+# 5. Sign up with any email/password (no verification code required)
+# The app uses a hardcoded test customer ID for demonstration
 ```
+
+**Note:** The Lambda functions use a hardcoded test Stripe customer ID (`cus_TaB0dKtvFSXyYe`). To use your own customer:
+1. Create a test customer in your Stripe dashboard
+2. Create a subscription for that customer
+3. Update the `TEST_CUSTOMER_ID` constant in:
+   - `amplify/functions/getSubscriptionStatus/handler.ts`
+   - `amplify/functions/createBillingPortalSession/handler.ts`
 
 ## What Would Be Improved with More Time
 
 ### Security & Production Readiness
 - [ ] **Database Integration**: DynamoDB table for `userId` → `stripe_customer_id` mapping
-- [ ] **AWS Secrets Manager**: Store Stripe API keys in Secrets Manager instead of environment variables
+- [ ] **AWS Secrets Manager**: Migrate from Amplify sandbox secrets to Secrets Manager for production
 - [ ] **Error Monitoring**: Integrate CloudWatch Logs and error tracking (Sentry)
 - [ ] **Rate Limiting**: Add API Gateway throttling and per-user rate limits
 - [ ] **Input Validation**: Add comprehensive validation with Zod or Joi
@@ -171,6 +182,9 @@ npm run dev
 .
 ├── amplify/
 │   ├── auth/
+│   │   ├── pre-sign-up/
+│   │   │   ├── handler.ts        # Auto-confirm users (no email verification)
+│   │   │   └── resource.ts       # Pre-signup trigger Lambda config
 │   │   └── resource.ts           # Cognito configuration
 │   ├── data/
 │   │   └── resource.ts           # GraphQL schema
@@ -192,18 +206,20 @@ npm run dev
 ├── package.json                  # Dependencies
 ├── tsconfig.json                 # TypeScript configuration
 ├── vite.config.ts                # Vite configuration
-├── README.md                     # This file
-└── SETUP.md                      # Setup instructions
+└── README.md                     # This file
 ```
 
 ## Environment Variables
 
-Required environment variables (see `.env.example`):
+The application uses **Amplify sandbox secrets** for secure credential management:
 
-```bash
-STRIPE_API_KEY=sk_test_...        # Your Stripe secret key (test mode)
-TEST_STRIPE_CUSTOMER_ID=cus_...   # Test customer ID for demonstration
-```
+**Required Secret:**
+- `STRIPE_API_KEY` - Your Stripe test API key (set via `npx ampx sandbox secret set STRIPE_API_KEY`)
+
+**Hardcoded for Assessment:**
+- `TEST_CUSTOMER_ID` - Hardcoded as `"cus_TaB0dKtvFSXyYe"` in Lambda handlers
+  - In production: would use DynamoDB table mapping `userId` → `stripe_customer_id`
+  - For testing: update the constant in Lambda handlers to use your own test customer
 
 ## API Reference
 
