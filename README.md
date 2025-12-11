@@ -112,6 +112,11 @@ A modern web application for viewing and managing Stripe subscription status, bu
 
 ## Setup Instructions
 
+**Prerequisites:**
+- Node.js 18+ installed
+- AWS CLI configured with credentials (`aws configure`)
+- Stripe account in test mode
+
 **Quick Start:**
 ```bash
 # 1. Install dependencies
