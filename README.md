@@ -92,6 +92,12 @@ A modern web application for viewing and managing Stripe subscription status, bu
 - **Benefit**: Type safety from schema to client
 - **Pattern**: Custom types with optional `data` and `error` fields
 
+### 6. **Single-Page Application**
+- **Why**: Assessment scope has one primary feature (subscription viewing)
+- **Benefit**: Simpler architecture, no routing overhead, immediate user experience
+- **Trade-off**: Less scalable for multi-feature applications
+- **Production Alternative**: Would add react-router for multi-page app with dashboard, settings, billing history, etc.
+
 ## Assumptions
 
 1. **Test Environment**: Using Stripe test mode with test API keys
