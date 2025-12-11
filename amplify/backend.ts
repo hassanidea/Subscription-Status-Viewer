@@ -4,13 +4,13 @@ import { preSignUp } from "./auth/pre-sign-up/resource";
 import { data } from "./data/resource";
 import { getSubscriptionStatus } from "./functions/getSubscriptionStatus/resource";
 import { createBillingPortalSession } from "./functions/createBillingPortalSession/resource";
-import { createSubscription } from "./functions/createSubscription/resource";
+import { createStripeCustomer } from "./functions/createStripeCustomer/resource";
 
 defineBackend({
   auth,
   data,
   getSubscriptionStatus,
   createBillingPortalSession,
-  createSubscription,
+  createStripeCustomer,
   preSignUp,
 });

@@ -1,41 +1,26 @@
-import type { Handler } from "aws-lambda";
 import Stripe from "stripe";
 
-export type CreateBillingPortalSessionHandler = Handler<
-  { userId: string; returnUrl: string },
-  {
-    url: string | null;
-    error?: string;
-  }
->;
-
-// Hardcoded test customer for assessment scope
-// const TEST_CUSTOMER_ID = "cus_TaB0dKtvFSXyYe";
-const TEST_CUSTOMER_ID = "cus_TaAXUYZvkhOKJO";
-// Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_API_KEY!, {
   apiVersion: "2025-11-17.clover",
   typescript: true,
 });
 
-export const handler: CreateBillingPortalSessionHandler = async (event) => {
+export const handler = async (event: {
+  arguments: { stripeCustomerId: string; returnUrl: string };
+}) => {
   try {
-    const { returnUrl } = event;
+    const { stripeCustomerId, returnUrl } = event.arguments;
 
-    // Use test customer ID (hardcoded for assessment)
-    // In production: would query database for stripe_customer_id
-    const customerId = TEST_CUSTOMER_ID;
-
-    if (!customerId) {
+    if (!stripeCustomerId) {
       return {
         url: null,
-        error: "Customer ID not found",
+        error: "No Stripe customer found for user",
       };
     }
 
-    // Create Billing Portal session
+    // Create billing portal session
     const session = await stripe.billingPortal.sessions.create({
-      customer: customerId,
+      customer: stripeCustomerId,
       return_url: returnUrl,
     });
 

@@ -5,9 +5,8 @@ import { useAuthenticator } from "@aws-amplify/ui-react";
 
 const client = generateClient<Schema>();
 
-// Remove the custom interface and just use the response type directly
-
 function App() {
+  // Using any for flexibility with Amplify's generated GraphQL types
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +18,22 @@ function App() {
         setIsLoading(true);
         setError(null);
 
+        // Look up the user's Stripe customer ID from DynamoDB
+        const mappingResponse = await client.models.UserStripeMapping.list({
+          filter: { owner: { eq: user?.userId } },
+        });
+
+        const mapping = mappingResponse.data?.[0];
+
+        if (!mapping?.stripeCustomerId) {
+          // No Stripe customer exists yet
+          setSubscriptionData({ status: "no_customer" });
+          return;
+        }
+
+        // Fetch subscription status using the Stripe customer ID
         const response = await client.queries.getSubscriptionStatus({
-          userId: user?.userId || "test-user",
+          stripeCustomerId: mapping.stripeCustomerId,
         });
 
         if (response.data?.error) {
@@ -77,8 +90,19 @@ function App() {
       setIsLoading(true);
       const returnUrl = window.location.href;
 
+      // Look up the user's Stripe customer ID
+      const mappingResponse = await client.models.UserStripeMapping.list({
+        filter: { owner: { eq: user?.userId } },
+      });
+
+      const mapping = mappingResponse.data?.[0];
+      if (!mapping?.stripeCustomerId) {
+        setError("No Stripe customer found");
+        return;
+      }
+
       const response = await client.queries.createBillingPortalSession({
-        userId: user?.userId || "test-user",
+        stripeCustomerId: mapping.stripeCustomerId,
         returnUrl,
       });
 
@@ -101,24 +125,46 @@ function App() {
   const handleSubscribe = async () => {
     try {
       setIsLoading(true);
-      const returnUrl = window.location.href;
+      const userId = user?.userId || "";
+      const email = user?.signInDetails?.loginId || "";
 
-      const response = await client.queries.createSubscription({
-        userId: user?.userId || "test-user",
-        returnUrl,
-        priceId: undefined, // Uses default price from Lambda
+      // Create Stripe customer
+      const response = await client.queries.createStripeCustomer({
+        email,
+        userId,
       });
 
       if (response.data?.error) {
         setError(response.data.error);
-      } else if (response.data?.checkoutUrl) {
-        // Redirect to Stripe Checkout
-        window.location.href = response.data.checkoutUrl;
+        return;
+      }
+
+      if (response.data?.customerId) {
+        // Save mapping to DynamoDB
+        await client.models.UserStripeMapping.create({
+          owner: userId,
+          stripeCustomerId: response.data.customerId,
+          email,
+        });
+
+        console.log(
+          "Stripe customer created and saved:",
+          response.data.customerId
+        );
+
+        // Fetch subscription status with the new customer ID
+        const statusResponse = await client.queries.getSubscriptionStatus({
+          stripeCustomerId: response.data.customerId,
+        });
+
+        if (statusResponse.data?.data) {
+          setSubscriptionData(statusResponse.data.data);
+        }
       }
     } catch (err) {
-      console.error("Error creating subscription:", err);
+      console.error("Error creating Stripe customer:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to create subscription"
+        err instanceof Error ? err.message : "Failed to create Stripe customer"
       );
     } finally {
       setIsLoading(false);
@@ -216,31 +262,28 @@ function App() {
             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
           }}
         >
-          {subscriptionData.status === "no_subscription" ? (
-            /* NO SUBSCRIPTION - Show subscribe option */
+          {subscriptionData?.status === "no_customer" ? (
+            /* NO STRIPE CUSTOMER - Show create account button */
             <div style={{ textAlign: "center" }}>
-              <div style={{ marginBottom: "24px" }}>
-                <h2
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "600",
-                    color: "#111827",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  No Active Subscription
-                </h2>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#6b7280",
-                    margin: 0,
-                  }}
-                >
-                  Subscribe to unlock premium features
-                </p>
-              </div>
-
+              <h2
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "600",
+                  color: "#111827",
+                  margin: "0 0 8px 0",
+                }}
+              >
+                Get Started
+              </h2>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  margin: "0 0 24px 0",
+                }}
+              >
+                Create your account to manage subscriptions
+              </p>
               <button
                 onClick={handleSubscribe}
                 disabled={isLoading}
@@ -254,40 +297,49 @@ function App() {
                   fontSize: "15px",
                   fontWeight: "600",
                   cursor: isLoading ? "not-allowed" : "pointer",
-                  marginBottom: "12px",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLoading) {
-                    e.currentTarget.style.backgroundColor = "#5145e5";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isLoading) {
-                    e.currentTarget.style.backgroundColor = "#635BFF";
-                  }
                 }}
               >
-                {isLoading ? "Loading..." : "Subscribe to Pro Plan"}
+                {isLoading ? "Loading..." : "Create Stripe Account"}
               </button>
-
+            </div>
+          ) : subscriptionData?.status === "no_subscription" ? (
+            /* HAS CUSTOMER BUT NO SUBSCRIPTION */
+            <div style={{ textAlign: "center" }}>
+              <h2
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "600",
+                  color: "#111827",
+                  margin: "0 0 8px 0",
+                }}
+              >
+                No Active Subscription
+              </h2>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  margin: "0 0 24px 0",
+                }}
+              >
+                Your Stripe account is ready
+              </p>
               <button
                 onClick={handleManageBilling}
                 disabled={isLoading}
                 style={{
                   width: "100%",
-                  padding: "12px",
-                  backgroundColor: "transparent",
-                  color: "#6b7280",
-                  border: "1px solid #e5e7eb",
+                  padding: "14px",
+                  backgroundColor: isLoading ? "#e5e7eb" : "#111827",
+                  color: isLoading ? "#9ca3af" : "white",
+                  border: "none",
                   borderRadius: "8px",
-                  fontSize: "14px",
-                  fontWeight: "500",
+                  fontSize: "15px",
+                  fontWeight: "600",
                   cursor: isLoading ? "not-allowed" : "pointer",
-                  transition: "all 0.2s",
                 }}
               >
-                Or explore billing options
+                {isLoading ? "Loading..." : "Manage Billing"}
               </button>
             </div>
           ) : (

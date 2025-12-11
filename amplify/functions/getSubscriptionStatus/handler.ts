@@ -1,52 +1,31 @@
-import type { Handler } from "aws-lambda";
 import Stripe from "stripe";
 
-// TypeScript types for the function
-export type GetSubscriptionStatusHandler = Handler<
-  { userId: string },
-  {
-    data: SubscriptionData | null;
-    error?: string;
-  }
->;
-
-export interface SubscriptionData {
-  status: "active" | "trialing" | "past_due" | "canceled" | "no_subscription";
-  planName: string;
-  renewalDate: string | null;
-  currentPeriodEnd: string | null;
-  currentPeriodStart: string | null;
-}
-
-// Hardcoded test customer for assessment scope
-// NOTE: In production, this would query a database table by userId
-// const TEST_CUSTOMER_ID = "cus_TaB0dKtvFSXyYe";
-const TEST_CUSTOMER_ID = "cus_TaAXUYZvkhOKJO";
-// Initialize Stripe with API key from environment
-// NOTE: In production, use AWS Secrets Manager
 const stripe = new Stripe(process.env.STRIPE_API_KEY!, {
   apiVersion: "2025-11-17.clover",
   typescript: true,
 });
 
-export const handler: GetSubscriptionStatusHandler = async (event) => {
+export const handler = async (event: {
+  arguments: { stripeCustomerId: string };
+}) => {
   try {
-    const { userId } = event;
+    const { stripeCustomerId } = event.arguments;
 
-    // Use test customer ID (hardcoded for assessment)
-    // In production: would query database: SELECT stripe_customer_id FROM users WHERE id = userId
-    const customerId = TEST_CUSTOMER_ID;
-
-    if (!customerId) {
+    if (!stripeCustomerId) {
       return {
-        data: null,
-        error: "TEST_STRIPE_CUSTOMER_ID not configured in environment",
+        data: {
+          status: "no_subscription",
+          planName: "None",
+          renewalDate: null,
+          currentPeriodEnd: null,
+          currentPeriodStart: null,
+        },
       };
     }
 
     // Fetch subscriptions from Stripe API
     const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
+      customer: stripeCustomerId,
       limit: 1,
       status: "all",
     });
@@ -72,7 +51,7 @@ export const handler: GetSubscriptionStatusHandler = async (event) => {
     const product = await stripe.products.retrieve(productId);
 
     // Map Stripe status to our app's status enum
-    const mapStatus = (stripeStatus: string): SubscriptionData["status"] => {
+    const mapStatus = (stripeStatus: string) => {
       if (stripeStatus === "active") return "active";
       if (stripeStatus === "trialing") return "trialing";
       if (stripeStatus === "past_due") return "past_due";
@@ -82,25 +61,18 @@ export const handler: GetSubscriptionStatusHandler = async (event) => {
     };
 
     // Return subscription data
-
     return {
       data: {
         status: mapStatus(subscription.status),
         planName: product.name,
         renewalDate: subscription.items.data[0]?.current_period_end
-          ? new Date(
-              subscription.items.data[0].current_period_end * 1000
-            ).toISOString()
+          ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
           : null,
         currentPeriodEnd: subscription.items.data[0]?.current_period_end
-          ? new Date(
-              subscription.items.data[0].current_period_end * 1000
-            ).toISOString()
+          ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
           : null,
         currentPeriodStart: subscription.items.data[0]?.current_period_start
-          ? new Date(
-              subscription.items.data[0].current_period_start * 1000
-            ).toISOString()
+          ? new Date(subscription.items.data[0].current_period_start * 1000).toISOString()
           : null,
       },
     };

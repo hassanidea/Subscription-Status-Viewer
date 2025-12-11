@@ -1,8 +1,8 @@
 {
-  "name": "createSubscription",
+  "name": "create-stripe-customer",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "stripe": "^17.4.0"
+    "stripe": "^20.0.0"
   }
 }

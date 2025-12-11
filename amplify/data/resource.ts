@@ -1,42 +1,36 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { getSubscriptionStatus } from "../functions/getSubscriptionStatus/resource";
 import { createBillingPortalSession } from "../functions/createBillingPortalSession/resource";
-import { createSubscription } from "../functions/createSubscription/resource";
+import { createStripeCustomer } from "../functions/createStripeCustomer/resource";
 
 const schema = a.schema({
-  createSubscription: a
+  UserStripeMapping: a
+    .model({
+      owner: a.string().required(),
+      stripeCustomerId: a.string().required(),
+      email: a.string(),
+    })
+    .authorization((allow) => [allow.owner()]),
+
+  createStripeCustomer: a
     .query()
     .arguments({
+      email: a.string().required(),
       userId: a.string().required(),
-      priceId: a.string(),
-      returnUrl: a.string().required(),
     })
     .returns(
       a.customType({
-        checkoutUrl: a.string(),
+        customerId: a.string(),
         error: a.string(),
       })
     )
     .authorization((allow) => [allow.authenticated()])
-    .handler(a.handler.function(createSubscription)),
-
-  // Data model: User-Stripe customer mapping
-  UserStripeMapping: a
-    .model({
-      userId: a.string().required(),
-      stripeCustomerId: a.string().required(),
-      email: a.email(),
-      createdAt: a.datetime(),
-    })
-    .authorization((allow) => [
-      allow.owner(),
-      allow.authenticated().to(["read"]),
-    ]),
+    .handler(a.handler.function(createStripeCustomer)),
 
   getSubscriptionStatus: a
     .query()
     .arguments({
-      userId: a.string().required(),
+      stripeCustomerId: a.string().required(),
     })
     .returns(
       a.customType({
@@ -56,7 +50,7 @@ const schema = a.schema({
   createBillingPortalSession: a
     .query()
     .arguments({
-      userId: a.string().required(),
+      stripeCustomerId: a.string().required(),
       returnUrl: a.string().required(),
     })
     .returns(

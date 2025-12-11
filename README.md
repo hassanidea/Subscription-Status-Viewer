@@ -72,10 +72,11 @@ A modern web application for viewing and managing Stripe subscription status, bu
 - **Benefit**: Better developer experience with TypeScript throughout
 - **Trade-off**: Requires learning Amplify Gen 2 syntax (different from Gen 1)
 
-### 2. **Hardcoded Test Customer ID**
-- **Why**: Assessment scope focused on functionality demonstration
-- **Production Alternative**: Would use DynamoDB table mapping `userId` → `stripe_customer_id`
-- **Current Implementation**: `TEST_CUSTOMER_ID` constant in Lambda functions
+### 2. **Dynamic User-to-Stripe Customer Mapping**
+- **Implementation**: DynamoDB `UserStripeMapping` table maps `userId` → `stripeCustomerId`
+- **Flow**: User creates Stripe account on first visit → mapping saved to DynamoDB → subsequent requests use mapped customer ID
+- **Benefit**: Each authenticated user gets their own Stripe customer and subscription data
+- **Testing**: When a user creates a Stripe account, the customer ID is logged to the console - use this ID to create a test subscription in the Stripe Dashboard
 
 ### 3. **Lambda Functions for Stripe Integration**
 - **Why**: Keeps API keys secure on the backend
@@ -101,10 +102,9 @@ A modern web application for viewing and managing Stripe subscription status, bu
 ## Assumptions
 
 1. **Test Environment**: Using Stripe test mode with test API keys
-2. **Single Customer**: One test customer (`cus_TaB0dKtvFSXyYe`) hardcoded for demonstration
-   - **Security Note**: Customer IDs are not sensitive data (unlike API keys)
-   - All authenticated users see the same test subscription data
-   - Production would use database lookup to map `userId` → `stripe_customer_id`
+2. **Dynamic Customer Mapping**: Each user creates their own Stripe customer on first visit
+   - Customer ID is stored in DynamoDB `UserStripeMapping` table
+   - Each authenticated user sees their own subscription data
 3. **US Locale**: Date formatting assumes US English locale
 4. **Modern Browsers**: Targets evergreen browsers with ES6+ support
 5. **AWS Account**: User has AWS account with appropriate permissions
@@ -128,20 +128,16 @@ npx ampx sandbox
 npm run dev
 
 # 5. Sign up with any email/password (no verification code required)
-# The app uses a hardcoded test customer ID for demonstration
+# 6. Click "Create Stripe Account" to create your Stripe customer
+# 7. Copy the customer ID from the browser console (cus_...)
+# 8. Create a subscription for that customer in Stripe Dashboard
+# 9. Refresh the app to see your subscription status
 ```
-
-**Note:** The Lambda functions use a hardcoded test Stripe customer ID (`cus_TaB0dKtvFSXyYe`). To use your own customer:
-1. Create a test customer in your Stripe dashboard
-2. Create a subscription for that customer
-3. Update the `TEST_CUSTOMER_ID` constant in:
-   - `amplify/functions/getSubscriptionStatus/handler.ts`
-   - `amplify/functions/createBillingPortalSession/handler.ts`
 
 ## What Would Be Improved with More Time
 
 ### Security & Production Readiness
-- [ ] **Database Integration**: DynamoDB table for `userId` → `stripe_customer_id` mapping
+- [x] **Database Integration**: DynamoDB `UserStripeMapping` table for `userId` → `stripeCustomerId` mapping
 - [ ] **AWS Secrets Manager**: Migrate from Amplify sandbox secrets to Secrets Manager for production
 - [ ] **Error Monitoring**: Integrate CloudWatch Logs and error tracking (Sentry)
 - [ ] **Rate Limiting**: Add API Gateway throttling and per-user rate limits
@@ -222,11 +218,6 @@ The application uses **Amplify sandbox secrets** for secure credential managemen
 **Required Secret:**
 - `STRIPE_API_KEY` - Your Stripe test API key (set via `npx ampx sandbox secret set STRIPE_API_KEY`)
 
-**Hardcoded for Assessment:**
-- `TEST_CUSTOMER_ID` - Hardcoded as `"cus_TaB0dKtvFSXyYe"` in Lambda handlers
-  - In production: would use DynamoDB table mapping `userId` → `stripe_customer_id`
-  - For testing: update the constant in Lambda handlers to use your own test customer
-
 ## API Reference
 
 ### `getSubscriptionStatus`
@@ -234,7 +225,7 @@ The application uses **Amplify sandbox secrets** for secure credential managemen
 Fetches subscription details from Stripe API.
 
 **Arguments:**
-- `userId: string` - User ID (currently mapped to test customer)
+- `stripeCustomerId: string` - Stripe customer ID from UserStripeMapping table
 
 **Returns:**
 ```typescript
@@ -255,13 +246,29 @@ Fetches subscription details from Stripe API.
 Creates a Stripe Billing Portal session URL.
 
 **Arguments:**
-- `userId: string` - User ID
+- `stripeCustomerId: string` - Stripe customer ID from UserStripeMapping table
 - `returnUrl: string` - URL to redirect after portal interaction
 
 **Returns:**
 ```typescript
 {
   url: string | null    // Stripe portal URL
+  error?: string
+}
+```
+
+### `createStripeCustomer`
+
+Creates a new Stripe customer for the authenticated user.
+
+**Arguments:**
+- `email: string` - User's email address
+- `userId: string` - Cognito user ID (stored in customer metadata)
+
+**Returns:**
+```typescript
+{
+  customerId: string | null  // New Stripe customer ID (cus_...)
   error?: string
 }
 ```
