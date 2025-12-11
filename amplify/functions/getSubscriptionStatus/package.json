@@ -1,0 +1,8 @@
+{
+  "name": "get-subscription-status",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "stripe": "^20.0.0"
+  }
+}

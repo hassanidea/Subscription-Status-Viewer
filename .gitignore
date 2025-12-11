@@ -27,3 +27,12 @@ dist-ssr
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# Environment files
+.env.local
+.env
+.env*.local
+
+# Amplify
+amplify_outputs.json
+amplify-outputs.json
