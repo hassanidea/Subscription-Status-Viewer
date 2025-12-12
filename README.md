@@ -33,6 +33,8 @@ npm run dev
 4. In Stripe Dashboard: create a subscription for that customer
 5. Refresh the app to see subscription status
 
+> **Note:** For simpler testing with a hardcoded Stripe customer ID (no DynamoDB mapping), checkout the `required-only` branch: `git checkout required-only`
+
 ---
 
 ## Features
