@@ -132,17 +132,21 @@ npm install
 npx ampx sandbox secret set STRIPE_API_KEY
 # When prompted, paste your Stripe test API key (sk_test_...)
 
-# 3. Start Amplify sandbox (deploys backend with authentication)
+# 3. (Optional) Set up Amplitude analytics
+# Create a .env.local file with your Amplitude API key
+echo "VITE_AMPLITUDE_API_KEY=your_amplitude_api_key" > .env.local
+
+# 4. Start Amplify sandbox (deploys backend with authentication)
 npx ampx sandbox
 
-# 4. In a new terminal, start development server
+# 5. In a new terminal, start development server
 npm run dev
 
-# 5. Sign up with any email/password (no verification code required)
-# 6. Click "Create Stripe Account" to create your Stripe customer
-# 7. Copy the customer ID from the browser console (cus_...)
-# 8. Create a subscription for that customer in Stripe Dashboard
-# 9. Refresh the app to see your subscription status
+# 6. Sign up with any email/password (no verification code required)
+# 7. Click "Create Stripe Account" to create your Stripe customer
+# 8. Copy the customer ID from the browser console (cus_...)
+# 9. Create a subscription for that customer in Stripe Dashboard
+# 10. Refresh the app to see your subscription status
 ```
 
 ## What Would Be Improved with More Time
