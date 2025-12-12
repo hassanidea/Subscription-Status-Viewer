@@ -139,8 +139,9 @@ Creates new Stripe customer and returns `customerId`.
 
 1. **Test mode** - Using Stripe test keys
 2. **Dynamic mapping** - Each user creates their own Stripe customer on first visit
-3. **US locale** - Date formatting uses US English
-4. **Modern browsers** - Targets ES6+ compatible browsers
+3. **Stripe Subsciption** - Subscription will be added to a Stripe customer in the Stripe dashboard itself not in the app
+4. **US locale** - Date formatting uses US English
+5. **Modern browsers** - Targets ES6+ compatible browsers
 
 ---
 
