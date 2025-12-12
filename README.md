@@ -10,17 +10,20 @@ A full-stack application for viewing and managing Stripe subscriptions, built wi
 # 1. Install dependencies
 npm install
 
-# 2. Set Stripe API key
+# 2. Set Stripe API key (required)
 npx ampx sandbox secret set STRIPE_API_KEY
 # Paste your Stripe test key (sk_test_...) when prompted
 
-# 3. Start backend (in terminal 1)
+# 3. (Optional) Set up Amplitude analytics
+echo "VITE_AMPLITUDE_API_KEY=your_amplitude_api_key" > .env.local
+
+# 4. Start backend (in terminal 1)
 npx ampx sandbox
 
-# 4. Start frontend (in terminal 2)
+# 5. Start frontend (in terminal 2)
 npm run dev
 
-# 5. Open http://localhost:5173, sign up, and test!
+# 6. Open http://localhost:5173, sign up, and test!
 ```
 
 **Testing the full flow:**
@@ -62,10 +65,15 @@ npm run dev
 
 **Key Design Decisions:**
 
-1. **Lambda for Stripe calls** - Keeps API keys secure on backend
-2. **DynamoDB user mapping** - Each user gets their own Stripe customer
-3. **GraphQL custom queries** - Type-safe API with Amplify Gen 2
-4. **Single-page app** - Simple architecture for assessment scope
+1. **Lambda for Stripe calls** - Stripe API keys are stored as server-side secrets (via `ampx sandbox secret`), never exposed to the browser. Each Lambda function has a single responsibility: one for fetching subscriptions, one for billing portal, one for customer creation.
+
+2. **DynamoDB user mapping** - Instead of hardcoding a single Stripe customer ID, each authenticated user gets their own Stripe customer. The `UserStripeMapping` table stores `userId → stripeCustomerId` mappings, enabling multi-user support and isolated subscription data.
+
+3. **GraphQL custom queries** - Amplify Gen 2's type-safe schema defines custom queries backed by Lambda resolvers. This provides end-to-end TypeScript types from the schema definition through to the React client, catching errors at compile time.
+
+4. **Single-page app** - Given the assessment scope (one primary feature), a single-page architecture avoids routing complexity. For production, I'd add react-router for dashboard, billing history, and settings pages.
+
+5. **No email verification** - A pre-signup Lambda trigger auto-confirms users to streamline the demo experience. In production, this would be removed to require email verification.
 
 ---
 
