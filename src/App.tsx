@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Schema } from "../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { setAnalyticsUserId, trackEvent } from "./utils/analytics";
 
 const client = generateClient<Schema>();
 
@@ -9,11 +10,16 @@ function App() {
   // Using any for flexibility with Amplify's generated GraphQL types
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, signOut } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
     async function fetchSubscriptionStatus() {
+      // Set analytics user ID
+      if (user?.userId) {
+        setAnalyticsUserId(user.userId);
+      }
       try {
         setIsLoading(true);
         setError(null);
@@ -49,6 +55,9 @@ function App() {
         );
       } finally {
         setIsLoading(false);
+        trackEvent("subscription_page_viewed", {
+          hasSubscription: !!subscriptionData,
+        });
       }
     }
 
@@ -86,8 +95,9 @@ function App() {
   };
 
   const handleManageBilling = async () => {
+    trackEvent("manage_billing_clicked");
     try {
-      setIsLoading(true);
+      setIsActionLoading(true);
       const returnUrl = window.location.href;
 
       // Look up the user's Stripe customer ID
@@ -118,13 +128,13 @@ function App() {
         err instanceof Error ? err.message : "Failed to open billing portal"
       );
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
   const handleSubscribe = async () => {
     try {
-      setIsLoading(true);
+      setIsActionLoading(true);
       const userId = user?.userId || "";
       const email = user?.signInDetails?.loginId || "";
 
@@ -152,6 +162,10 @@ function App() {
           response.data.customerId
         );
 
+        trackEvent("stripe_account_created", {
+          customerId: response.data.customerId,
+        });
+
         // Fetch subscription status with the new customer ID
         const statusResponse = await client.queries.getSubscriptionStatus({
           stripeCustomerId: response.data.customerId,
@@ -167,7 +181,7 @@ function App() {
         err instanceof Error ? err.message : "Failed to create Stripe customer"
       );
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -286,20 +300,20 @@ function App() {
               </p>
               <button
                 onClick={handleSubscribe}
-                disabled={isLoading}
+                disabled={isActionLoading}
                 style={{
                   width: "100%",
                   padding: "14px",
-                  backgroundColor: isLoading ? "#e5e7eb" : "#635BFF",
-                  color: isLoading ? "#9ca3af" : "white",
+                  backgroundColor: isActionLoading ? "#e5e7eb" : "#635BFF",
+                  color: isActionLoading ? "#9ca3af" : "white",
                   border: "none",
                   borderRadius: "8px",
                   fontSize: "15px",
                   fontWeight: "600",
-                  cursor: isLoading ? "not-allowed" : "pointer",
+                  cursor: isActionLoading ? "not-allowed" : "pointer",
                 }}
               >
-                {isLoading ? "Loading..." : "Create Stripe Account"}
+                {isActionLoading ? "Creating..." : "Create Stripe Account"}
               </button>
             </div>
           ) : subscriptionData?.status === "no_subscription" ? (
@@ -326,20 +340,20 @@ function App() {
               </p>
               <button
                 onClick={handleManageBilling}
-                disabled={isLoading}
+                disabled={isActionLoading}
                 style={{
                   width: "100%",
                   padding: "14px",
-                  backgroundColor: isLoading ? "#e5e7eb" : "#111827",
-                  color: isLoading ? "#9ca3af" : "white",
+                  backgroundColor: isActionLoading ? "#e5e7eb" : "#111827",
+                  color: isActionLoading ? "#9ca3af" : "white",
                   border: "none",
                   borderRadius: "8px",
                   fontSize: "15px",
                   fontWeight: "600",
-                  cursor: isLoading ? "not-allowed" : "pointer",
+                  cursor: isActionLoading ? "not-allowed" : "pointer",
                 }}
               >
-                {isLoading ? "Loading..." : "Manage Billing"}
+                {isActionLoading ? "Loading..." : "Manage Billing"}
               </button>
             </div>
           ) : (
@@ -506,31 +520,31 @@ function App() {
               {/* Manage Billing Button */}
               <button
                 onClick={handleManageBilling}
-                disabled={isLoading}
+                disabled={isActionLoading}
                 style={{
                   width: "100%",
                   padding: "12px",
-                  backgroundColor: isLoading ? "#e5e7eb" : "#111827",
-                  color: isLoading ? "#9ca3af" : "white",
+                  backgroundColor: isActionLoading ? "#e5e7eb" : "#111827",
+                  color: isActionLoading ? "#9ca3af" : "white",
                   border: "none",
                   borderRadius: "8px",
                   fontSize: "14px",
                   fontWeight: "500",
-                  cursor: isLoading ? "not-allowed" : "pointer",
+                  cursor: isActionLoading ? "not-allowed" : "pointer",
                   transition: "all 0.2s",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading) {
+                  if (!isActionLoading) {
                     e.currentTarget.style.backgroundColor = "#374151";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading) {
+                  if (!isActionLoading) {
                     e.currentTarget.style.backgroundColor = "#111827";
                   }
                 }}
               >
-                {isLoading ? "Loading..." : "Manage Billing"}
+                {isActionLoading ? "Loading..." : "Manage Billing"}
               </button>
             </>
           )}

@@ -19,6 +19,11 @@ A modern web application for viewing and managing Stripe subscription status, bu
 - Protected routes and API endpoints
 - Email/password authentication flow
 
+✅ **Analytics (Stretch Goal)**
+- Amplitude event tracking integration
+- Tracks: subscription page views, billing clicks, account creation
+- User identification for cohort analysis
+
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite
@@ -27,6 +32,7 @@ A modern web application for viewing and managing Stripe subscription status, bu
 - **API**: AWS AppSync (GraphQL)
 - **Functions**: AWS Lambda (Node.js)
 - **Payments**: Stripe API
+- **Analytics**: Amplitude
 - **Hosting**: AWS Amplify Hosting (optional)
 
 ## Architecture
@@ -208,7 +214,9 @@ npm run dev
 ├── src/
 │   ├── App.tsx                   # Main application component
 │   ├── main.tsx                  # Entry point with Amplify config
-│   └── index.css                 # Global styles
+│   ├── index.css                 # Global styles
+│   └── utils/
+│       └── analytics.ts          # Amplitude analytics wrapper
 ├── index.html                    # HTML template
 ├── package.json                  # Dependencies
 ├── tsconfig.json                 # TypeScript configuration
@@ -222,6 +230,9 @@ The application uses **Amplify sandbox secrets** for secure credential managemen
 
 **Required Secret:**
 - `STRIPE_API_KEY` - Your Stripe test API key (set via `npx ampx sandbox secret set STRIPE_API_KEY`)
+
+**Optional Environment Variable (for analytics):**
+- `VITE_AMPLITUDE_API_KEY` - Your Amplitude API key (create a `.env` file with this value)
 
 ## API Reference
 
