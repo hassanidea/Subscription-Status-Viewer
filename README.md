@@ -146,32 +146,11 @@ Creates new Stripe customer and returns `customerId`.
 
 ## What I'd Improve with More Time
 
-**Production Readiness:**
-- [ ] Stripe webhooks for real-time status updates (instead of polling/refresh)
-- [ ] AWS Secrets Manager instead of sandbox secrets
-- [ ] Error monitoring with Sentry or CloudWatch Alarms
-- [ ] Rate limiting and input validation on Lambda functions
-
-**Testing:**
-- [ ] Unit tests for Lambda functions (Jest + mocked Stripe)
-- [ ] E2E tests with Playwright (sign up → create customer → view subscription)
-- [ ] Integration tests for GraphQL resolvers
-
-**Security:**
-- [ ] Input validation with Zod on Lambda handlers
-- [ ] CORS configuration for production domain
-- [ ] API request logging for audit trail
-
-**User Experience:**
-- [ ] Toast notifications for success/error feedback
-- [ ] Skeleton loading states instead of "Loading..."
-- [ ] Mobile-responsive design improvements
-- [ ] Billing history/invoice downloads
-
-**DevOps:**
-- [ ] CI/CD pipeline with GitHub Actions
-- [ ] Separate dev/staging/production environments
-- [ ] Infrastructure monitoring dashboard
+- [ ] **Stripe webhooks** - Real-time subscription updates instead of manual refresh
+- [ ] **Tests** - Unit tests for Lambdas (Jest), E2E for critical flows (Playwright)
+- [ ] **Input validation** - Zod schemas on Lambda handlers
+- [ ] **Error monitoring** - Sentry or CloudWatch for production visibility
+- [ ] **CI/CD** - GitHub Actions for automated testing and deployment
 
 ---
 
