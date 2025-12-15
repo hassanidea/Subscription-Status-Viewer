@@ -147,6 +147,7 @@ Creates new Stripe customer and returns `customerId`.
 
 ## What I'd Improve with More Time
 
+- [ ] **UI** - Create Header, Subscription and Footer React components for better reusability, readability and scalability
 - [ ] **Stripe webhooks** - Real-time subscription updates instead of manual refresh
 - [ ] **Tests** - Unit tests for Lambdas (Jest), E2E for critical flows (Playwright)
 - [ ] **Input validation** - Zod schemas on Lambda handlers
